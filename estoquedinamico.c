@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 typedef struct{
     int id;
     char nome[50];
     char marca[30];
-    int validade;
+    char validade[5];
     int qtd;
 }Produto;
 
@@ -23,25 +24,90 @@ void limpa(){
     fflush(stdin);
     __fpurge(stdin);
 }
+
+void posicionaElemento(No *inicio_procura, No *posElem, char validadeElem[], int idElem){
+    No *auxiliar;
+    No *provisorio;
+    int compara;
+    char validadeAtual[5];
+
+    auxiliar = inicio_procura;
+    
+    while(auxiliar->produto.id == idElem){         
+        strcpy(validadeAtual, auxiliar->produto.validade);
+
+        compara = strcmp(&validadeAtual[3], &validadeElem[3]); //compara o primeiro digito do ano
+               
+        if(compara > 0){ //validadeatual é maior, logo validadeelem deve vir antes dele
+            continue;
+        }
+        else if(compara < 0){
+            provisorio = auxiliar->prox;
+            auxiliar->prox = posElem;
+            posElem->prox = provisorio;
+            return;            
+        }
+        
+        auxiliar = auxiliar->prox;
+    }
+}
+
+
+int validaData(char data[]){
+    int i;
+    for(i = 0; data[i] != '\0'; i++){
+        if(data[i] < 47 || data[i] > 57){
+            return 0;
+        }
+    }    
+    if(i != 5){
+        return 0;
+    }
+    else{
+        return 1;
+    }
+}
+
+int validaNumeros(char valor[]){
+    int i, convert_int = 0, tam = 0;
+
+    for(i = 0; valor[i] != '\0'; i++){
+        if(valor[i] < 48 || valor[i] > 57){
+            return 0;
+        }
+        tam += 1;
+    }
+
+    tam -= 1;
+
+    for(i = 0; valor[i] != '\0'; i++){
+
+        convert_int += (valor[i]-48) * pow(10, tam);
+
+        tam -= 1;
+    }
+
+    return convert_int;
+}
                                                 //lembrar de liberar espaços dos nós provisorios
 void procura(ListaInicio *lista){    
     No *auxiliar;
     char opcao;    
 
     if(lista->inicio == NULL){
-        printf("O estoque está vazio, cadastre algo antes de consultar.\n");
+        printf("O estoque esta vazio, cadastre algo antes de consultar.\n");
         return;
     }        
     else{
         int encontrou = 0;
         limpa();
-        printf("\nDigite a opção pelo elemento que deseja procurar:\n");
+        printf("\nDigite a opcao pelo elemento que deseja procurar:\n");
         printf("1 Por codigo\n2 Por nome\n");
         scanf("%c", &opcao);
 
         if(opcao == 49){
             int codigo;
-            printf("Digite o código do produto procurado: ");
+            printf("Digite o codigo do produto procurado: ");
             scanf("%d", &codigo);
 
             auxiliar = lista->inicio;
@@ -52,13 +118,13 @@ void procura(ListaInicio *lista){
                         encontrou = 1;
                     }
                     
-                    printf("%d %s %s %d %d\n", auxiliar->produto.id, auxiliar->produto.nome, 
+                    printf("%d %s %s %s %d\n", auxiliar->produto.id, auxiliar->produto.nome, 
                                             auxiliar->produto.marca, auxiliar->produto.validade, auxiliar->produto.qtd);                   
                 }
                 auxiliar = auxiliar->prox;
             }
             if(encontrou == 0){
-                printf("O produto solicitado não existe.\n");
+                printf("O produto solicitado nao existe.\n");
             }                    
         }
         else if(opcao == 50){                
@@ -77,29 +143,31 @@ void procura(ListaInicio *lista){
                         printf("Isso foi o que encontramos:\n");
                         encontrou = 1; 
                     }                                   
-                    printf("  %d %s %s %d %d\n", auxiliar->produto.id, auxiliar->produto.nome, 
+                    printf("  %d %s %s %s %d\n", auxiliar->produto.id, auxiliar->produto.nome, 
                                             auxiliar->produto.marca, auxiliar->produto.validade, auxiliar->produto.qtd);
                 }
                 auxiliar = auxiliar->prox;
             } 
             if(encontrou == 0){
-                printf("O produto solicitado não existe.\n");
+                printf("O produto solicitado nao existe.\n");
             }
         }
         else{
-            printf("Opção invalida\n");
+            printf("Opcao invalida\n");
             return procura(lista);
-        }       
-    }
-    
+        }     
+    }    
 }
 
-No *procuraEspecifico(ListaInicio *lista, int elemento, int flip){ //elemento é sempre o ID
+No *procuraEspecifico(ListaInicio *lista, int elemento, int flip){ 
+    /*o valor elemento é sempre o ID do elemento procurado*/
+    /* flip = 0 é a operação de remover;
+       flip = 1 é procurar a posição de um elemento*/
+
     int qtd, falta = 0;
     No *auxiliar;
     No *ultimo = 0;
-    auxiliar = lista->inicio;
-       
+    auxiliar = lista->inicio;       
 
     while(auxiliar != NULL){                
         if(auxiliar->produto.id == elemento){
@@ -141,13 +209,15 @@ No *procuraEspecifico(ListaInicio *lista, int elemento, int flip){ //elemento é
 
     if(flip == 1){
         if(qtd > 0){
-            printf("Não existe estoque suficiente para retirar, falta(ram) %d unidade(s).\n", qtd);
+            printf("Nao existe estoque suficiente para retirar, falta(ram) %d unidade(s).\n", qtd);
         }
         else{
             printf("Sucesso na retirada dos produtos.\n");
         }   
     }
-    
+    else{
+        return 0;
+    }    
 }
 
 int menu(){
@@ -180,20 +250,36 @@ void iniciaLista(ListaInicio *lista){
 void cadastraNovoProduto(ListaInicio *lista){
     printf("\nCADASTRO DE NOVO PRODUTO\n");
     int verificado = 0;
+    char data[6];
+    char codigo[50];
+    char quantidade[6];
+
     No *novoNo;
     Produto novoProduto;
     novoNo = malloc(sizeof(No));
 
     if(novoNo == NULL){
-        printf("Não eh possível cadastrar.\n");
+        printf("Nao eh possivel cadastrar.\n");
         return;
     }
                                     
     //fazer tratamento de erro
+    while(verificado == 0){
+        limpa();
+        printf("Digite o codigo do produto: "); 
+        gets(codigo);        
+
+        verificado = validaNumeros(codigo);
+        
+        if (verificado == 0){
+            printf("O codigo deve conter apenas numeros.\n");
+        }        
+
+        limpa();  
+    }
     
-    printf("Digite o código do produto: "); 
-    scanf("%d", &novoProduto.id);
-    limpa();
+    novoProduto.id = verificado;
+    verificado = 0;
 
     No *resposta = procuraEspecifico(lista, novoProduto.id, 0);
 
@@ -213,30 +299,57 @@ void cadastraNovoProduto(ListaInicio *lista){
         limpa();  
     }  
 
-    printf("Digite a validade do produto (diamesano, sem espaços ou caracteres): ");
-    scanf("%d", &novoProduto.validade);
+    while(verificado == 0){
+        printf("Digite a validade do produto (mes/ano, ex: 03/23): ");
+        //scanf("%c", data);
+        gets(data);
+        limpa();
 
-    printf("Digite a quantidade de unidades do produto: ");
-    scanf("%d", &novoProduto.qtd);
+        if(validaData(data) == 1){
+            verificado = 1;
+            strcpy(novoProduto.validade, data);           
+        }
+        else{
+            printf("Data invalida.\n");
+        }        
+    }
+    
+    verificado = 0;
 
-    //printf("%d %s %s %d %d\n", novoProduto.id, novoProduto.nome, novoProduto.marca, novoProduto.validade, novoProduto.qtd);
-    
-    novoNo->produto = novoProduto;
-    
+    while(verificado == 0){        
+        printf("Digite a quantidade de unidades do produto: "); 
+        gets(quantidade);        
+
+        verificado = validaNumeros(quantidade);
+        
+        if (verificado == 0){
+            printf("Isso nao eh um numero.\n");
+        }
+
+        limpa();  
+    }    
+    novoProduto.qtd = verificado;
+
+    novoNo->produto = novoProduto;    
     if(lista->inicio == NULL){
         novoNo->prox = lista->inicio;
         lista->inicio = novoNo;
     }
     else{
-        No *auxiliar;
-        auxiliar = lista->inicio;
-        
-        while(auxiliar->prox != NULL){            
-            auxiliar = auxiliar->prox;
+        if(resposta != 0){
+            posicionaElemento(resposta, novoNo, novoProduto.validade, novoProduto.id);            
         }
+        else{
+            No *auxiliar;
+            auxiliar = lista->inicio;
+            
+            while(auxiliar->prox != NULL){        
+                auxiliar = auxiliar->prox;
+            }
 
-        novoNo->prox = auxiliar->prox;
-        auxiliar->prox = novoNo;
+            novoNo->prox = auxiliar->prox;
+            auxiliar->prox = novoNo;
+        }        
     }
 
     printf("Cadastrado com sucesso!\n");
@@ -251,17 +364,15 @@ void imprimeEstoque(ListaInicio *lista){
         return;
     }
     else{
-        printf("\nCódigo\tNome\tMarca\tValidade\tQuantidade disponível\n");
+        printf("\nCodigo\tNome\tMarca\tValidade\tQuantidade disponível\n");
         for(atual = lista->inicio; atual != NULL; atual = atual->prox){
-            printf("%d\t%s\t%s\t%d\t%d\n",atual->produto.id, atual->produto.nome, atual->produto.marca, atual->produto.validade, atual->produto.qtd);
+            printf("%d\t%s\t%s\t%s\t%d\n",atual->produto.id, atual->produto.nome, atual->produto.marca, atual->produto.validade, atual->produto.qtd);
         }
         return;
     }   
-
 }
 
-
-void main(){
+int main(){
     int operacao, loop = 1, codigo;
     char yn;
     ListaInicio *estoque;
@@ -285,11 +396,11 @@ void main(){
             case 3:
                 //retirar produto
                 if(estoque->inicio == NULL){
-                    printf("O estoque está vazio, cadastre algo antes de consultar.\n");
+                    printf("O estoque esta vazio, cadastre algo antes de consultar.\n");
                     break;
                 }
                 else{
-                    printf("\nDigite o código do produto que quer retirar: ");   
+                    printf("\nDigite o codigo do produto que quer retirar: ");   
                     scanf("%d", &codigo);  
                     procuraEspecifico(estoque, codigo, 1); 
                 }                         
@@ -305,7 +416,7 @@ void main(){
                 scanf("%c", &yn);
                 limpa();
                 if(yn == 121 || yn == 89){
-                    return;
+                    return 0;
                 }   
         }
     }

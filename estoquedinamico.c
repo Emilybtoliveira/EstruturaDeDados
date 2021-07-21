@@ -3,6 +3,9 @@
 #include <string.h>
 #include <math.h>
 
+#define MIN_MES 1
+#define MAX_MES 12
+
 typedef struct{
     int id;
     char nome[50];
@@ -25,34 +28,6 @@ void limpa(){
     __fpurge(stdin);
 }
 
-void posicionaElemento(No *inicio_procura, No *posElem, char validadeElem[], int idElem){
-    No *auxiliar;
-    No *provisorio;
-    int compara;
-    char validadeAtual[5];
-
-    auxiliar = inicio_procura;
-    
-    while(auxiliar->produto.id == idElem){         
-        strcpy(validadeAtual, auxiliar->produto.validade);
-
-        compara = strcmp(&validadeAtual[3], &validadeElem[3]); //compara o primeiro digito do ano
-               
-        if(compara > 0){ //validadeatual é maior, logo validadeelem deve vir antes dele
-            continue;
-        }
-        else if(compara < 0){
-            provisorio = auxiliar->prox;
-            auxiliar->prox = posElem;
-            posElem->prox = provisorio;
-            return;            
-        }
-        
-        auxiliar = auxiliar->prox;
-    }
-}
-
-
 int validaData(char data[]){
     int i;
     for(i = 0; data[i] != '\0'; i++){
@@ -64,7 +39,14 @@ int validaData(char data[]){
         return 0;
     }
     else{
-        return 1;
+        int mes = (data[0]-48)*10 + (data[1]-48);
+
+        if(mes >= MIN_MES && mes <= MAX_MES){
+            return 1;
+        }
+        else{
+            return 0;
+        }        
     }
 }
 
@@ -89,7 +71,98 @@ int validaNumeros(char valor[]){
 
     return convert_int;
 }
-                                                //lembrar de liberar espaços dos nós provisorios
+
+void determinaPosicao(ListaInicio *lista, No *aInserir){
+    int mes_val_aux, ano_val_aux, mes_val_ainserir, ano_val_ainserir;
+    No *auxiliar  = lista->inicio;
+    No *ultimoNo = 0;
+
+    while(auxiliar != NULL){
+        if(auxiliar->produto.id == aInserir->produto.id){
+            
+            while(auxiliar != NULL && auxiliar->produto.id == aInserir->produto.id){
+                /* mes/ano_val_aux é a validade do nó auxiliar convertida para int*/
+                mes_val_aux = (auxiliar->produto.validade[0] - 48)*10 + (auxiliar->produto.validade[1] - 48);
+                ano_val_aux = (auxiliar->produto.validade[3] - 48)*10 + (auxiliar->produto.validade[4] - 48);
+                /* mes/ano_val_ainserir é a validade do nó a inserir na lista convertida para int*/
+                mes_val_ainserir = (aInserir->produto.validade[0] - 48)*10 + (aInserir->produto.validade[1] - 48);
+                ano_val_ainserir = (aInserir->produto.validade[3] - 48)*10 + (aInserir->produto.validade[4] - 48);
+
+                if(ano_val_aux < ano_val_ainserir){
+                    /* o nó a ser inserido tem uma validade maior(pelo ano), logo deve vir abaixo do nó q ja esta na lista */
+                    if(ultimoNo != 0){
+                        ultimoNo->prox = auxiliar;
+                    }
+                    
+                    aInserir->prox = auxiliar->prox;
+                    auxiliar->prox = aInserir;
+
+                    ultimoNo = auxiliar;
+                    auxiliar = aInserir->prox;  
+                }
+                else if(ano_val_aux > ano_val_ainserir){
+                    /* o nó a ser inserido tem uma validade menor(pelo ano), logo deve vir acima do nó q ja esta na lista */
+                    if(ultimoNo == 0){
+                        lista->inicio = aInserir;
+                        aInserir->prox = auxiliar;
+                    }
+                    else{
+                        ultimoNo->prox = aInserir; 
+                        aInserir->prox = auxiliar;                        
+                    }  
+                    return;                                     
+                }
+                else{
+                    /* anos iguais, deve se comparar o mes */
+                    if(mes_val_aux < mes_val_ainserir){
+                        /* o nó a ser inserido tem uma validade maior(pelo mes), logo deve vir abaixo do nó q ja esta na lista */
+                        if(ultimoNo != 0){
+                            ultimoNo->prox = auxiliar;
+                        }
+                        
+                        aInserir->prox = auxiliar->prox;
+                        auxiliar->prox = aInserir;
+
+                        ultimoNo = auxiliar;
+                        auxiliar = aInserir->prox;  
+                    }
+                    else if(mes_val_aux > mes_val_ainserir){
+                        /* o nó a ser inserido tem uma validade menor(pelo mes), logo deve vir acima do nó q ja esta na lista */
+                        if(ultimoNo == 0){
+                            lista->inicio = aInserir;
+                            aInserir->prox = auxiliar;
+                        }
+                        else{
+                            ultimoNo->prox = aInserir; 
+                            aInserir->prox = auxiliar;                        
+                        }
+                        return;
+                    }
+                    else{
+                        if(ultimoNo != 0){
+                            ultimoNo->prox = auxiliar;
+                        }
+                        
+                        aInserir->prox = auxiliar->prox;
+                        auxiliar->prox = aInserir;
+
+                        ultimoNo = auxiliar;
+                        auxiliar = aInserir->prox;
+                    }
+                    
+                }
+                              
+            }
+
+            return;            
+        }
+
+        ultimoNo = auxiliar;
+        auxiliar = auxiliar->prox;
+    }
+
+}
+
 void procura(ListaInicio *lista){    
     No *auxiliar;
     char opcao;    
@@ -182,23 +255,25 @@ No *procuraEspecifico(ListaInicio *lista, int elemento, int flip){
                 if((auxiliar->produto.qtd - qtd) > 0){
                     auxiliar->produto.qtd -= qtd;
                     return 0;
-                }
+                }                
                 else{
                     if((auxiliar->produto.qtd - qtd) < 0){
                         qtd -= auxiliar->produto.qtd;
                         falta = 1;
-                    }                    
+                    }  
+
+                    else if((auxiliar->produto.qtd - qtd) == 0){
+                        qtd = 0;
+                    }
 
                     if(ultimo != 0){
                         ultimo->prox = auxiliar->prox;
                     }
                     else{
                         lista->inicio = auxiliar->prox;
+                    
                     }
-
-                    if((auxiliar->produto.qtd - qtd) == 0){
-                        return 0; 
-                    }                    
+                                        
                 }
 
             }                     
@@ -220,32 +295,6 @@ No *procuraEspecifico(ListaInicio *lista, int elemento, int flip){
     }    
 }
 
-int menu(){
-    char opcao;
-
-    limpa();
-
-    printf("\nSISTEMA DE ESTOQUE\n");
-           
-    printf("\nOperações:\n1  Listar estoque\n2  Cadastrar produto novo\n3  Retirar produto\n4  Consultar produto\n5  Encerrar sistema\n\n");
-    printf("Digite a opção desejada: ");
-    scanf("%c", &opcao);
-
-    limpa();
-    
-    if(opcao > 48 && opcao < 55){
-        return (opcao-48);
-    }
-    else{
-        printf("Opcao invalida\n\n");
-        return menu();
-    }    
-    
-}
-
-void iniciaLista(ListaInicio *lista){
-    lista->inicio = NULL;
-}
 
 void cadastraNovoProduto(ListaInicio *lista){
     printf("\nCADASTRO DE NOVO PRODUTO\n");
@@ -337,7 +386,7 @@ void cadastraNovoProduto(ListaInicio *lista){
     }
     else{
         if(resposta != 0){
-            posicionaElemento(resposta, novoNo, novoProduto.validade, novoProduto.id);            
+            determinaPosicao(lista, novoNo);
         }
         else{
             No *auxiliar;
@@ -349,7 +398,9 @@ void cadastraNovoProduto(ListaInicio *lista){
 
             novoNo->prox = auxiliar->prox;
             auxiliar->prox = novoNo;
+
         }        
+               
     }
 
     printf("Cadastrado com sucesso!\n");
@@ -370,6 +421,33 @@ void imprimeEstoque(ListaInicio *lista){
         }
         return;
     }   
+}
+
+void iniciaLista(ListaInicio *lista){
+    lista->inicio = NULL;
+}
+
+int menu(){
+    char opcao;
+
+    limpa();
+
+    printf("\nSISTEMA DE ESTOQUE\n");
+           
+    printf("\nOperações:\n1  Listar estoque\n2  Cadastrar produto novo\n3  Retirar produto\n4  Consultar produto\n5  Encerrar sistema\n\n");
+    printf("Digite a opção desejada: ");
+    scanf("%c", &opcao);
+
+    limpa();
+    
+    if(opcao > 48 && opcao < 55){
+        return (opcao-48);
+    }
+    else{
+        printf("Opcao invalida\n\n");
+        return menu();
+    }    
+    
 }
 
 int main(){

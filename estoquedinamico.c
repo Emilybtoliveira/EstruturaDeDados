@@ -3,8 +3,7 @@
 #include <string.h>
 #include <math.h>
 
-#define MIN_MES 1
-#define MAX_MES 12
+#define ANO_ATUAL 21
 
 typedef struct{
     int id;
@@ -40,9 +39,16 @@ int validaData(char data[]){
     }
     else{
         int mes = (data[0]-48)*10 + (data[1]-48);
+        int ano = (data[3]-48)*10 + (data[4]-48);
 
-        if(mes >= MIN_MES && mes <= MAX_MES){
-            return 1;
+        if(mes >= 1 && mes <= 12){
+            if(ano >= ANO_ATUAL){
+                return 1;
+            }
+            else{
+                printf("Esse ano já passou. ");
+                return 0;
+            }            
         }
         else{
             return 0;
@@ -232,67 +238,71 @@ void procura(ListaInicio *lista){
     }    
 }
 
-No *procuraEspecifico(ListaInicio *lista, int elemento, int flip){ 
-    /*o valor elemento é sempre o ID do elemento procurado*/
-    /* flip = 0 é a operação de remover;
-       flip = 1 é procurar a posição de um elemento*/
-
-    int qtd, falta = 0;
+void retiraQtd(ListaInicio *lista, int id){
+    int qtd;
     No *auxiliar;
     No *ultimo = 0;
-    auxiliar = lista->inicio;       
 
-    while(auxiliar != NULL){                
-        if(auxiliar->produto.id == elemento){
-            if(flip == 0){
-                return auxiliar; 
-            }       
-            else{ 
-                if(falta == 0){
-                    printf("Digite a quantidade a ser retirada: ");
-                    scanf("%d", &qtd);
-                } 
+    auxiliar = lista->inicio;  
+
+    printf("Digite a quantidade a ser retirada: ");
+    scanf("%d", &qtd);
+
+    while(auxiliar != NULL){ 
+        if(auxiliar->produto.id == id){
+            while((auxiliar->produto.id == id)&&(qtd != 0)){                     
                 if((auxiliar->produto.qtd - qtd) > 0){
                     auxiliar->produto.qtd -= qtd;
-                    return 0;
+                    qtd = 0;
                 }                
                 else{
+                    
                     if((auxiliar->produto.qtd - qtd) < 0){
-                        qtd -= auxiliar->produto.qtd;
-                        falta = 1;
+                        qtd -= auxiliar->produto.qtd;                            
                     }  
 
                     else if((auxiliar->produto.qtd - qtd) == 0){
                         qtd = 0;
                     }
-
+                    /* Nos dois casos, é preciso excluir o elemento, visto que a sua quantidade se torna 0 */
                     if(ultimo != 0){
                         ultimo->prox = auxiliar->prox;
+                        auxiliar = ultimo->prox;
                     }
                     else{
-                        lista->inicio = auxiliar->prox;
-                    
-                    }
+                        lista->inicio = auxiliar->prox; 
+                        ultimo = lista->inicio;
+                        auxiliar = auxiliar->prox;
+                    }                        
                                         
-                }
+                }  
+            }
 
-            }                     
-        }
+            if(qtd > 0){
+                printf("Nao existe estoque suficiente para retirar, falta(ram) %d unidade(s).\n", qtd);
+            }
+            else{
+                printf("Sucesso na retirada dos produtos.\n");
+            }
+
+            return;
+        }        
+        
         ultimo = auxiliar;
         auxiliar = auxiliar->prox;
-    }
-
-    if(flip == 1){
-        if(qtd > 0){
-            printf("Nao existe estoque suficiente para retirar, falta(ram) %d unidade(s).\n", qtd);
-        }
-        else{
-            printf("Sucesso na retirada dos produtos.\n");
-        }   
-    }
-    else{
-        return 0;
     }    
+}
+
+No *procuraEspecifico(ListaInicio *lista, int id){ 
+    No *auxiliar;
+    auxiliar = lista->inicio;       
+
+    while(auxiliar != NULL){                
+        if(auxiliar->produto.id == id){            
+            return auxiliar;                                 
+        }
+        auxiliar = auxiliar->prox;
+    }   
 }
 
 
@@ -330,7 +340,7 @@ void cadastraNovoProduto(ListaInicio *lista){
     novoProduto.id = verificado;
     verificado = 0;
 
-    No *resposta = procuraEspecifico(lista, novoProduto.id, 0);
+    No *resposta = procuraEspecifico(lista, novoProduto.id);
 
     if(resposta != 0){ //verificar se ja nao eh um codigo cadastrado
         strcpy(novoProduto.nome, resposta->produto.nome);
@@ -480,7 +490,7 @@ int main(){
                 else{
                     printf("\nDigite o codigo do produto que quer retirar: ");   
                     scanf("%d", &codigo);  
-                    procuraEspecifico(estoque, codigo, 1); 
+                    retiraQtd(estoque, codigo);
                 }                         
                 break;
 

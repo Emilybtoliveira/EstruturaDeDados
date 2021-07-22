@@ -51,6 +51,7 @@ int validaData(char data[]){
             }            
         }
         else{
+            printf("Esse mês não existe. ");
             return 0;
         }        
     }
@@ -238,18 +239,23 @@ void procura(ListaInicio *lista){
     }    
 }
 
-void retiraQtd(ListaInicio *lista, int id){
-    int qtd;
+void retiraQtd(ListaInicio *lista){
+    int qtd, id;
     No *auxiliar;
     No *ultimo = 0;
 
-    auxiliar = lista->inicio;  
+    auxiliar = lista->inicio;
 
-    printf("Digite a quantidade a ser retirada: ");
-    scanf("%d", &qtd);
+    printf("\nDigite o codigo do produto que quer retirar: ");   
+    scanf("%d", &id);
+    
 
     while(auxiliar != NULL){ 
         if(auxiliar->produto.id == id){
+
+          printf("Digite a quantidade a ser retirada: ");
+          scanf("%d", &qtd);
+
             while((auxiliar->produto.id == id)&&(qtd != 0)){                     
                 if((auxiliar->produto.qtd - qtd) > 0){
                     auxiliar->produto.qtd -= qtd;
@@ -273,6 +279,10 @@ void retiraQtd(ListaInicio *lista, int id){
                         lista->inicio = auxiliar->prox; 
                         ultimo = lista->inicio;
                         auxiliar = auxiliar->prox;
+
+                        if(auxiliar == NULL){
+                            break;
+                        }
                     }                        
                                         
                 }  
@@ -290,7 +300,10 @@ void retiraQtd(ListaInicio *lista, int id){
         
         ultimo = auxiliar;
         auxiliar = auxiliar->prox;
-    }    
+    }   
+
+    printf("Esse código não existe.\n"); 
+    return retiraQtd(lista);
 }
 
 No *procuraEspecifico(ListaInicio *lista, int id){ 
@@ -302,7 +315,8 @@ No *procuraEspecifico(ListaInicio *lista, int id){
             return auxiliar;                                 
         }
         auxiliar = auxiliar->prox;
-    }   
+    } 
+    return 0;  
 }
 
 
@@ -314,6 +328,7 @@ void cadastraNovoProduto(ListaInicio *lista){
     char quantidade[6];
 
     No *novoNo;
+    No *resposta;
     Produto novoProduto;
     novoNo = malloc(sizeof(No));
 
@@ -326,8 +341,8 @@ void cadastraNovoProduto(ListaInicio *lista){
     while(verificado == 0){
         limpa();
         printf("Digite o codigo do produto: "); 
-        gets(codigo);        
-
+        //gets(codigo);        
+        scanf(" %s", codigo);
         verificado = validaNumeros(codigo);
         
         if (verificado == 0){
@@ -340,7 +355,7 @@ void cadastraNovoProduto(ListaInicio *lista){
     novoProduto.id = verificado;
     verificado = 0;
 
-    No *resposta = procuraEspecifico(lista, novoProduto.id);
+    resposta = procuraEspecifico(lista, novoProduto.id);
 
     if(resposta != 0){ //verificar se ja nao eh um codigo cadastrado
         strcpy(novoProduto.nome, resposta->produto.nome);
@@ -349,19 +364,17 @@ void cadastraNovoProduto(ListaInicio *lista){
     else{        
         printf("Digite o nome do produto: ");
         gets(novoProduto.nome);
-        
         limpa();
 
         printf("Digite a marca do produto: ");
         gets(novoProduto.marca);
-
         limpa();  
     }  
 
     while(verificado == 0){
         printf("Digite a validade do produto (mes/ano, ex: 03/23): ");
-        //scanf("%c", data);
-        gets(data);
+        scanf(" %s", data);
+        //gets(data);
         limpa();
 
         if(validaData(data) == 1){
@@ -377,7 +390,8 @@ void cadastraNovoProduto(ListaInicio *lista){
 
     while(verificado == 0){        
         printf("Digite a quantidade de unidades do produto: "); 
-        gets(quantidade);        
+        scanf(" %s", quantidade);
+        //gets(quantidade);        
 
         verificado = validaNumeros(quantidade);
         
@@ -488,9 +502,7 @@ int main(){
                     break;
                 }
                 else{
-                    printf("\nDigite o codigo do produto que quer retirar: ");   
-                    scanf("%d", &codigo);  
-                    retiraQtd(estoque, codigo);
+                  retiraQtd(estoque);
                 }                         
                 break;
 
